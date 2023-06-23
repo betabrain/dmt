@@ -38,7 +38,7 @@ def decode(data: bytes, sk: bytes, ek: bytes) -> bytes:
         return None
 
 
-def send(obj: object):
+def sendto(obj: object, host="localhost", port=8443):
     sk = binascii.a2b_hex(
         "d124e42376b5a9aac99ce1e36e99abdcdba02cb47b4180c9def31f540de0ef9f"
     )
@@ -46,10 +46,11 @@ def send(obj: object):
         "740c4dc406a63c6fe5ece80eb30866fda75cfe579cc0781a1e306d47c49359e0"
     )
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.sendto(encode(cbor2.dumps(obj), sk, ek), ("localhost", 8080))
+    sock.sendto(encode(cbor2.dumps(obj), sk, ek), (host, port))
     sock.close()
 
 
 if __name__ == "__main__":
     import dmt_client
-    dmt_client.send({"value": None, "message": "This is a test!"})
+    for i in range(1000):
+        dmt_client.sendto({"i": i, "value": None, "message": "This is a test!"})

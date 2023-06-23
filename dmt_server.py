@@ -46,18 +46,6 @@ def server(*, sk: bytes, ek: bytes, port: int = 0):
     sock.bind(("", port))
     print(f"listening on {sock.getsockname()[0]}:{sock.getsockname()[1]}")
 
-    sock.sendto(b"Hello, World!", sock.getsockname())
-    sock.sendto(encode(b"Hello, World!", sk, ek), sock.getsockname())
-    for i in range(10):
-        sock.sendto(
-            encode(
-                cbor2.dumps([55.34, {0: None, 1: 2.1, "msg": "Hello, World!", "i": i}]),
-                sk,
-                ek,
-            ),
-            sock.getsockname(),
-        )
-
     while True:
         cipher, peer = sock.recvfrom(65536)
         plain = decode(cipher, sk, ek)
@@ -77,7 +65,7 @@ def server(*, sk: bytes, ek: bytes, port: int = 0):
 
 if __name__ == "__main__":
     server(
-        port=8080,
+        port=8443,
         sk=binascii.a2b_hex(
             "d124e42376b5a9aac99ce1e36e99abdcdba02cb47b4180c9def31f540de0ef9f"
         ),
