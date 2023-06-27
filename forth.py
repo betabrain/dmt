@@ -1,21 +1,29 @@
 import re
 import sys
 
+
 class Forth:
     def __init__(self):
         self._tib = []
         self._tib_consumed = 0
         self._ps = []
         self._ds = []
-        self._env = {
-            "defn": self._defn,
-            "dup": self._dup,
-            "drop": self._drop,
-            "+": self._lambda(2, lambda a, b: a + b),
-            "-": self._lambda(2, lambda a, b: a - b),
-            "*": self._lambda(2, lambda a, b: a * b),
-            "/": self._lambda(2, lambda a, b: a / b),
-        }
+        self._env = {}
+        self.define("defn", self._defn)
+        self.define("dup", self._lambda(1, lambda a: (a, a)))
+        self.define("drop", self._lambda(1, lambda a: tuple()))
+        self.define("swap", self._lambda(2, lambda a, b: (b, a)))
+        self.define("+", self._lambda(2, lambda a, b: (a + b,)))
+        self.define("-", self._lambda(2, lambda a, b: (a - b,)))
+        self.define("*", self._lambda(2, lambda a, b: (a * b,)))
+        self.define("/", self._lambda(2, lambda a, b: (a / b,)))
+        self.define("+1", self._lambda(1, lambda a: (a + 1,)))
+        self.define("-1", self._lambda(1, lambda a: (a - 1,)))
+        self.define("negate", self._lambda(1, lambda a: (-a,)))
+        self.define("if", self._if)
+
+    def define(self, name, func):
+        self._env[name] = func
 
     def _defn(self):
         name = self._ps.pop(0)
@@ -24,21 +32,28 @@ class Forth:
         body = self._ps.pop(0)
         assert body is not None
         assert body[0] == 'block'
+
         def _caller():
             self._ps = body[1] + self._ps
+
         self._env[name[1]] = _caller
+
+    def _if(self):
+        truthy = self._ps.pop(0)
+        assert truthy[0] == 'block'
+        falsy = self._ps.pop(0)
+        assert falsy[0] == 'block'
+        if self._ds.pop() != 0:
+            self._ps = truthy[1] + self._ps
+        else:
+            self._ps = falsy[1] + self._ps
 
     def _lambda(self, n, fn):
         def method():
             args = reversed(list(self._ds.pop() for _ in range(n)))
-            self._ds.append(fn(*args))
+            self._ds.extend(fn(*args))
+
         return method
-
-    def _dup(self):
-        self._ds.append(self._ds[-1])
-
-    def _drop(self):
-        self._ds.pop()
 
     def push_input(self, line):
         self._tib.extend(re.findall("\\S+", line))
@@ -86,7 +101,6 @@ class Forth:
     def _evaluate(self):
         while self._ps:
             t = self._ps.pop(0)
-            print(f"evaluate: {t} {self._ds} {self._ps}")
             if t[0] == 'number':
                 self._ds.append(t[1])
             elif t[0] == 'symbol':
@@ -100,7 +114,6 @@ class Forth:
                 return
 
 
-
 if __name__ == '__main__':
     f = Forth()
 
@@ -109,7 +122,7 @@ if __name__ == '__main__':
         print(f"ds: {f._ds}")
         print(f"ps: {f._ps}")
         print(f"tib: {f._tib_consumed} {f._tib}")
-        print("> ", end="")
+        print(f"{f._ds}> ", end="")
         line = sys.stdin.readline().strip()
         if line == "quit":
             break
